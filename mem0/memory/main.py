@@ -335,12 +335,37 @@ class Memory(MemoryBase):
             response_format={"type": "json_object"},
         )
 
+        # Support structured facts format
+        facts_metadata = {}  # Store metadata for each fact
         try:
             response = remove_code_blocks(response)
-            new_retrieved_facts = json.loads(response)["facts"]
+            response_json = json.loads(response)
+            raw_facts = response_json.get("facts", [])
+            
+            # Process structured facts: support both object list and string list
+            new_retrieved_facts = []
+            
+            for fact in raw_facts:
+                if isinstance(fact, dict):
+                    # New format: {"type": "persona", "sub_type": "name", "memory": "John", "reference": [...]}
+                    memory_text = fact.get("memory", "")
+                    if memory_text:
+                        new_retrieved_facts.append(memory_text)
+                        # Save metadata for later use
+                        facts_metadata[memory_text] = {
+                            "type": fact.get("type", "fact"),
+                            "sub_type": fact.get("sub_type", "general"),
+                            "reference": fact.get("reference", [])
+                        }
+                elif isinstance(fact, str):
+                    # Compatible with old format: direct string
+                    new_retrieved_facts.append(fact)
+                    facts_metadata[fact] = {"type": "fact", "sub_type": "general", "reference": []}
+                    
         except Exception as e:
             logger.error(f"Error in new_retrieved_facts: {e}")
             new_retrieved_facts = []
+            facts_metadata = {}
 
         if not new_retrieved_facts:
             logger.debug("No new facts retrieved from input. Skipping memory update LLM call.")
@@ -372,6 +397,7 @@ class Memory(MemoryBase):
             retrieved_old_memory[idx]["id"] = str(idx)
 
         if new_retrieved_facts:
+            # Pass facts_metadata to update memory messages if needed
             function_calling_prompt = get_update_memory_messages(
                 retrieved_old_memory, new_retrieved_facts, self.config.custom_update_memory_prompt
             )
@@ -406,18 +432,36 @@ class Memory(MemoryBase):
 
                     event_type = resp.get("event")
                     if event_type == "ADD":
+                        # Merge fact metadata if available
+                        memory_metadata = deepcopy(metadata)
+                        if action_text in facts_metadata:
+                            fact_meta = facts_metadata[action_text]
+                            memory_metadata["memory_type"] = fact_meta["type"]
+                            memory_metadata["memory_sub_type"] = fact_meta["sub_type"]
+                            if fact_meta.get("reference"):
+                                memory_metadata["reference"] = json.dumps(fact_meta["reference"])
+                        
                         memory_id = self._create_memory(
                             data=action_text,
                             existing_embeddings=new_message_embeddings,
-                            metadata=deepcopy(metadata),
+                            metadata=memory_metadata,
                         )
                         returned_memories.append({"id": memory_id, "memory": action_text, "event": event_type})
                     elif event_type == "UPDATE":
+                        # Also add metadata for UPDATE operations
+                        memory_metadata = deepcopy(metadata)
+                        if action_text in facts_metadata:
+                            fact_meta = facts_metadata[action_text]
+                            memory_metadata["memory_type"] = fact_meta["type"]
+                            memory_metadata["memory_sub_type"] = fact_meta["sub_type"]
+                            if fact_meta.get("reference"):
+                                memory_metadata["reference"] = json.dumps(fact_meta["reference"])
+                        
                         self._update_memory(
                             memory_id=temp_uuid_mapping[resp.get("id")],
                             data=action_text,
                             existing_embeddings=new_message_embeddings,
-                            metadata=deepcopy(metadata),
+                            metadata=memory_metadata,
                         )
                         returned_memories.append(
                             {
@@ -1175,12 +1219,38 @@ class AsyncMemory(MemoryBase):
             messages=[{"role": "system", "content": system_prompt}, {"role": "user", "content": user_prompt}],
             response_format={"type": "json_object"},
         )
+        
+        # Support structured facts format
+        facts_metadata = {}  # Store metadata for each fact
         try:
             response = remove_code_blocks(response)
-            new_retrieved_facts = json.loads(response)["facts"]
+            response_json = json.loads(response)
+            raw_facts = response_json.get("facts", [])
+            
+            # Process structured facts: support both object list and string list
+            new_retrieved_facts = []
+            
+            for fact in raw_facts:
+                if isinstance(fact, dict):
+                    # New format: {"type": "persona", "sub_type": "name", "memory": "John", "reference": [...]}
+                    memory_text = fact.get("memory", "")
+                    if memory_text:
+                        new_retrieved_facts.append(memory_text)
+                        # Save metadata for later use
+                        facts_metadata[memory_text] = {
+                            "type": fact.get("type", "fact"),
+                            "sub_type": fact.get("sub_type", "general"),
+                            "reference": fact.get("reference", [])
+                        }
+                elif isinstance(fact, str):
+                    # Compatible with old format: direct string
+                    new_retrieved_facts.append(fact)
+                    facts_metadata[fact] = {"type": "fact", "sub_type": "general", "reference": []}
+                    
         except Exception as e:
             logger.error(f"Error in new_retrieved_facts: {e}")
             new_retrieved_facts = []
+            facts_metadata = {}
 
         if not new_retrieved_facts:
             logger.debug("No new facts retrieved from input. Skipping memory update LLM call.")
@@ -1249,21 +1319,39 @@ class AsyncMemory(MemoryBase):
                     event_type = resp.get("event")
 
                     if event_type == "ADD":
+                        # Merge fact metadata if available
+                        memory_metadata = deepcopy(metadata)
+                        if action_text in facts_metadata:
+                            fact_meta = facts_metadata[action_text]
+                            memory_metadata["memory_type"] = fact_meta["type"]
+                            memory_metadata["memory_sub_type"] = fact_meta["sub_type"]
+                            if fact_meta.get("reference"):
+                                memory_metadata["reference"] = json.dumps(fact_meta["reference"])
+                        
                         task = asyncio.create_task(
                             self._create_memory(
                                 data=action_text,
                                 existing_embeddings=new_message_embeddings,
-                                metadata=deepcopy(metadata),
+                                metadata=memory_metadata,
                             )
                         )
                         memory_tasks.append((task, resp, "ADD", None))
                     elif event_type == "UPDATE":
+                        # Also add metadata for UPDATE operations
+                        memory_metadata = deepcopy(metadata)
+                        if action_text in facts_metadata:
+                            fact_meta = facts_metadata[action_text]
+                            memory_metadata["memory_type"] = fact_meta["type"]
+                            memory_metadata["memory_sub_type"] = fact_meta["sub_type"]
+                            if fact_meta.get("reference"):
+                                memory_metadata["reference"] = json.dumps(fact_meta["reference"])
+                        
                         task = asyncio.create_task(
                             self._update_memory(
                                 memory_id=temp_uuid_mapping[resp["id"]],
                                 data=action_text,
                                 existing_embeddings=new_message_embeddings,
-                                metadata=deepcopy(metadata),
+                                metadata=memory_metadata,
                             )
                         )
                         memory_tasks.append((task, resp, "UPDATE", temp_uuid_mapping[resp["id"]]))
