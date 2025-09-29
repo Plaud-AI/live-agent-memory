@@ -80,18 +80,39 @@ Get up and running in minutes with automatic updates, analytics, and enterprise 
 1. Sign up on [Mem0 Platform](https://app.mem0.ai)
 2. Embed the memory layer via SDK or API keys
 
-### Self-Hosted (Open Source)
+### Installation
 
-Install the sdk via pip:
+This is a fork of mem0ai with Plaud AI enhancements. Install directly from GitHub:
 
+#### Using uv (Recommended)
 ```bash
-pip install mem0ai
+# Latest stable version
+uv add git+https://github.com/Plaud-AI/live-agent-memory.git@v1.0.0
+
+# Latest development version
+uv add git+https://github.com/Plaud-AI/live-agent-memory.git@main
+
+# Specific version
+uv add git+https://github.com/Plaud-AI/live-agent-memory.git@v1.0.0-beta.1
 ```
 
-Install sdk via npm:
+#### Using pip
 ```bash
-npm install mem0ai
+# Latest stable version
+pip install git+https://github.com/Plaud-AI/live-agent-memory.git@v1.0.0
+
+# Latest development version
+pip install git+https://github.com/Plaud-AI/live-agent-memory.git@main
+
+# Specific version
+pip install git+https://github.com/Plaud-AI/live-agent-memory.git@v1.0.0-beta.1
 ```
+
+#### Available Versions
+- `@main` - Latest development code
+- `@v1.0.0-beta.X` - Beta versions for testing
+- `@v1.0.0-rc.X` - Release candidates
+- `@v1.0.0` - Stable releases
 
 ### Basic Usage
 

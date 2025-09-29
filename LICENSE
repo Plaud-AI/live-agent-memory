@@ -186,7 +186,10 @@
       same "printed page" as the copyright notice for easier
       identification within third-party archives.
 
-   Copyright [2023] [Taranjeet Singh]
+   Copyright [2024] [Plaud AI]
+   
+   Portions of this software are derived from mem0ai (https://github.com/mem0ai/mem0)
+   Original work Copyright 2023 Taranjeet Singh
 
    Licensed under the Apache License, Version 2.0 (the "License");
    you may not use this file except in compliance with the License.
