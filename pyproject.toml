@@ -16,7 +16,7 @@ requires-python = ">=3.9,<4.0"
 dependencies = [
     "qdrant-client>=1.9.1",
     "pydantic>=2.7.3",
-    "openai>=1.90.0,<1.100.0",
+    "openai>=1.90.0",
     "posthog>=3.5.0",
     "pytz>=2024.1",
     "sqlalchemy>=2.0.31",
